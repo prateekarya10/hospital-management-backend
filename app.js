@@ -11,7 +11,12 @@ import errorHandler from './middleware/errorHandler.js';
 const app = express();
 connectDB();
 
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173", "https://hospital-management-backend-omega.vercel.app/api"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 
 app.use(morgan('dev'));
 app.use(express.json());
