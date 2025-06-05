@@ -32,5 +32,6 @@ const patientSchema = new mongoose.Schema({
     lastUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+patientSchema.index({ name: 'text', patientId: 'text', 'contactInfo.phone': 'text' });
 const Patient = mongoose.model('Patient', patientSchema);
 export default Patient;
