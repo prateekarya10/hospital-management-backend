@@ -12,7 +12,7 @@ const app = express();
 connectDB();
 
 app.use(cors({
-    origin: ["http://localhost:5173", "https://hospital-management-backend-omega.vercel.app/api"],
+    origin: ["http://localhost:5173", "https://arya-health-care.vercel.app"],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
