@@ -11,12 +11,7 @@ import errorHandler from './middleware/errorHandler.js';
 const app = express();
 connectDB();
 
-app.use(cors({
-    origin: "*",
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+app.use(cors());
 
 app.use(morgan('dev'));
 app.use(express.json());
