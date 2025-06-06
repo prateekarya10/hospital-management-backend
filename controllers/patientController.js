@@ -205,6 +205,38 @@ export const getPatientsPendingVitals = async (req, res, next) => {
 };
 
 
+export const getNurseStats = async (req, res, next) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Total patients assigned to this nurse
+    // Assuming req.user.id contains the logged-in nurse's user id
+    const totalPatientsAssigned = await Patient.countDocuments({ assignedNurse: req.user.id });
+
+    // Patients with vitals updated today
+    const vitalsUpdatedToday = await Patient.countDocuments({
+      assignedNurse: req.user.id,
+      'vitals.lastUpdated': { $gte: todayStart, $lte: todayEnd },
+    });
+
+    // Patients with vitals pending (not updated today)
+    const patientsToCheck = totalPatientsAssigned - vitalsUpdatedToday;
+
+    res.json({
+      patientsToCheck,
+      vitalsUpdatedToday,
+      totalPatientsAssigned,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // Get appointments (Receptionist + Doctor + Admin)
 export const getPatientAppointments = async (req, res, next) => {
     try {

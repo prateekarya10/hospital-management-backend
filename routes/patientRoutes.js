@@ -5,7 +5,8 @@ import {
     updatePatientVitals,
     getDoctorDashboardStats,
     getTodaysAppointments,
-    getPatientsPendingVitals
+    getPatientsPendingVitals,
+    getNurseStats
 } from '../controllers/patientController.js';
 import { patientValidation, vitalsValidation } from '../utils/validators.js';
 import auth from '../middleware/auth.js';
@@ -27,8 +28,8 @@ router.get('/:patientId', auth(['doctor', 'nurse', 'receptionist', 'admin']), ge
 
 // Nurse-specific endpoints
 router.patch('/:patientId/vitals', auth(['nurse']), updatePatientVitals);
-router.get('/pending-vitals', auth(['nurse']), getPatientsPendingVitals);
-
+router.get('/pending/vitals', auth(['nurse']), getPatientsPendingVitals);
+router.get('/nurse/stats', auth(['nurse']), getNurseStats);
 
 // Receptionist-specific endpoints
 router.get('/:patientId/appointments', auth(['receptionist', 'doctor', 'admin']), getPatientAppointments);
