@@ -162,6 +162,47 @@ export const getDoctorDashboardStats = async (req, res) => {
     }
 };
 
+// Update Appointment (Doctor ,Receptionist)
+export const updatePatientAppointment = async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        const { appointmentDate, updates } = req.body;
+        // appointmentDate = string or Date which identifies appointment
+        // updates = { status: 'Completed', reason: 'Updated reason', ... }
+
+        if (!appointmentDate || !updates) {
+            return res.status(400).json({ message: "appointmentDate and updates are required" });
+        }
+
+        const patient = await Patient.findOne({ patientId });
+        if (!patient) {
+            return res.status(404).json({ message: "Patient not found" });
+        }
+
+        // Find the appointment to update
+        const appointment = patient.appointments.find(app =>
+            new Date(app.date).getTime() === new Date(appointmentDate).getTime()
+        );
+
+        if (!appointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        // Update only the provided keys in appointment
+        Object.keys(updates).forEach(key => {
+            appointment[key] = updates[key];
+        });
+
+        await patient.save();
+
+        return res.status(200).json({ message: "Appointment updated successfully", appointment });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 
 // Update vitals (Nurse only)
 export const updatePatientVitals = async (req, res, next) => {
@@ -206,34 +247,34 @@ export const getPatientsPendingVitals = async (req, res, next) => {
 
 
 export const getNurseStats = async (req, res, next) => {
-  try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
 
-    // Total patients assigned to this nurse
-    // Assuming req.user.id contains the logged-in nurse's user id
-    const totalPatientsAssigned = await Patient.countDocuments({ assignedNurse: req.user.id });
+        // Total patients assigned to this nurse
+        // Assuming req.user.id contains the logged-in nurse's user id
+        const totalPatientsAssigned = await Patient.countDocuments({ assignedNurse: req.user.id });
 
-    // Patients with vitals updated today
-    const vitalsUpdatedToday = await Patient.countDocuments({
-      assignedNurse: req.user.id,
-      'vitals.lastUpdated': { $gte: todayStart, $lte: todayEnd },
-    });
+        // Patients with vitals updated today
+        const vitalsUpdatedToday = await Patient.countDocuments({
+            assignedNurse: req.user.id,
+            'vitals.lastUpdated': { $gte: todayStart, $lte: todayEnd },
+        });
 
-    // Patients with vitals pending (not updated today)
-    const patientsToCheck = totalPatientsAssigned - vitalsUpdatedToday;
+        // Patients with vitals pending (not updated today)
+        const patientsToCheck = totalPatientsAssigned - vitalsUpdatedToday;
 
-    res.json({
-      patientsToCheck,
-      vitalsUpdatedToday,
-      totalPatientsAssigned,
-    });
-  } catch (err) {
-    next(err);
-  }
+        res.json({
+            patientsToCheck,
+            vitalsUpdatedToday,
+            totalPatientsAssigned,
+        });
+    } catch (err) {
+        next(err);
+    }
 };
 
 
@@ -257,8 +298,6 @@ export const getTodaysAppointments = async (req, res, next) => {
 
         const todayEnd = new Date();
         todayEnd.setHours(23, 59, 59, 999);
-
-        // Assuming appointment is embedded in patients collection
         const appointments = await Patient.aggregate([
             { $unwind: '$appointments' },
             {
@@ -279,6 +318,54 @@ export const getTodaysAppointments = async (req, res, next) => {
         res.json(appointments);
     } catch (err) {
         next(err);
+    }
+};
+// (Receptionist Only)
+
+export const getReceptionistStats = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Total patients count
+        const totalPatients = await Patient.countDocuments();
+
+        // Today's appointments
+        const todaysAppointments = await Patient.aggregate([
+            { $unwind: "$appointments" },
+            {
+                $match: {
+                    "appointments.date": {
+                        $gte: today,
+                        $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+                    },
+                },
+            },
+            { $count: "count" },
+        ]);
+
+        // Pending appointments
+        const pendingAppointments = await Patient.aggregate([
+            { $unwind: "$appointments" },
+            {
+                $match: {
+                    "appointments.status": "Scheduled",
+                },
+            },
+            { $count: "count" },
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalPatients,
+                todaysAppointments: todaysAppointments[0]?.count || 0,
+                pendingAppointments: pendingAppointments[0]?.count || 0,
+            },
+        });
+    } catch (err) {
+        console.error("Error fetching receptionist stats:", err);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
